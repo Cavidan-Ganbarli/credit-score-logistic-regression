@@ -31,14 +31,39 @@ A credit risk model that estimates the probability that a customer has a **Poor*
 
 Final variables: `OutstandingDebt`, `InterestRate`, `NumCreditInquiries`, `Delayfromduedate`.
 
+![ROC curve of the final model](roc_curve.png)
+
 The gap between train and test Gini is below 1 point, so the model is stable. Reducing the model from 14 to 4 variables costs about 3 Gini points and makes it much easier to explain.
+
+## Model coefficients
+
+| Variable (WoE) | Coefficient |
+|---|---|
+| `OutstandingDebt_woe` | -0.498 |
+| `InterestRate_woe` | -0.426 |
+| `Delayfromduedate_woe` | -0.288 |
+| `NumCreditInquiries_woe` | -0.271 |
+| Intercept | -0.889 |
+
+All coefficients are negative. This is expected: WoE is defined as `ln(good / bad)`, so a higher WoE means a lower probability of a Poor score. `OutstandingDebt` and `InterestRate` have the largest influence on PD.
+
+## Limitations
+
+- **Repeated customers.** The 87,495 rows belong to 12,500 customers (2 to 8 monthly rows each). With a random split, 99.9% of test rows belong to a customer who is also in the training set. As a check, the model was re-estimated with a split by customer and WoE bins fitted on the training part only: Test Gini was 57.6 (vs 55.9), so the reported Gini is not inflated by this. The check used a single split, so it is indicative rather than conclusive.
+- **WoE on the full data.** In the main workflow WoE is calculated before the train-test split, as in the course material; a production model should fit the bins on the training data only.
+- **Data quality.** 7,526 rows (8.6%) have an implausible `Age` (for example -500 or 8698) and several other variables contain extreme values. They were not cleaned: quartile binning places them in the first or last bin.
+- **Missing values** were imputed with the mean or mode without a missing-value category, which can hide a pattern in the missingness.
+- **Target definition.** Standard and Good are merged into one class; the model predicts the *Poor* class only.
+- **Validation.** One random split (`random_state=42`); no out-of-time validation or calibration check was performed.
 
 ## Repository structure
 
 ```
 .
 ├── Logistic_Regression_Credit_Score.ipynb   # full analysis
+├── roc_curve.png
 ├── requirements.txt
+├── .gitignore
 └── README.md
 ```
 
